@@ -1,13 +1,6 @@
 ---
 description: Generate a commit message from current git changes
-allowed-tools: Bash(git diff:*), Bash(git log:*), Bash(git status:*)
 ---
-
-## Context
-
-- Current git diff (staged and unstaged changes): !`git diff HEAD`
-- Current git status: !`git status --short`
-- Recent commits for style reference: !`git log --oneline -5`
 
 ## Your task
 
@@ -23,7 +16,15 @@ CRITICAL RULES:
 Format:
 <type>: <subject max 50 chars>
 
-<body explaining why, wrapped at 72 chars>
+* <first change/feature>
+* <second change/feature>
+* <etc>
+
+Body rules:
+- Break down by functionality - one bullet per logical change
+- Each line starts with * (bullet point)
+- Keep each bullet under 72 chars
+- Focus on WHY not WHAT
 
 Types: feat, fix, refactor, docs, style, test, chore
 

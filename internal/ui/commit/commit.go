@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ihatemodels/gdev/internal/config"
+	"github.com/ihatemodels/gdev/internal/embedded"
 	"github.com/ihatemodels/gdev/internal/ui/styles"
 	"github.com/ihatemodels/gdev/internal/ui/terminal"
 )
@@ -163,9 +164,54 @@ func (m Model) startGenerating() (Model, tea.Cmd) {
 	m.Terminal.Dir = m.RepoPath
 	m.Terminal.SetSize(m.Width, m.Height)
 
-	// Run claude with the generate-commit-msg skill
-	cmd := m.Terminal.RunCommand("claude", "-p", "/generate-commit-msg")
+	// Build the prompt with git context
+	prompt := m.buildCommitPrompt()
+
+	// Run claude with the embedded prompt
+	cmd := m.Terminal.RunCommand("claude", "-p", prompt)
 	return m, cmd
+}
+
+// buildCommitPrompt constructs the commit message prompt with git context.
+func (m Model) buildCommitPrompt() string {
+	// Get git context
+	gitDiff := runGitCommand(m.RepoPath, "diff", "HEAD")
+	gitStatus := runGitCommand(m.RepoPath, "status", "--short")
+	gitLog := runGitCommand(m.RepoPath, "log", "--oneline", "-5")
+
+	// Get the embedded prompt template
+	promptTemplate, err := embedded.GetCommandPrompt("generate-commit-msg")
+	if err != nil {
+		// Fallback to a simple prompt if embedded fails
+		promptTemplate = "Generate a commit message for these changes."
+	}
+
+	// Build context section
+	context := fmt.Sprintf(`## Context
+
+- Current git diff (staged and unstaged changes):
+%s
+
+- Current git status:
+%s
+
+- Recent commits for style reference:
+%s
+
+`, gitDiff, gitStatus, gitLog)
+
+	return context + promptTemplate
+}
+
+// runGitCommand executes a git command and returns its output.
+func runGitCommand(dir string, args ...string) string {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func (m Model) handleGenerateDone() (Model, tea.Cmd) {
