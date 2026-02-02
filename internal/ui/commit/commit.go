@@ -419,8 +419,11 @@ func (m Model) doCommit() (Model, tea.Cmd) {
 		commitMsg += "\n\n" + m.Body
 	}
 
-	// Build the git command
-	gitCmd := fmt.Sprintf(`git add -A && git commit -m %q`, commitMsg)
+	// Build the git command using HEREDOC to preserve newlines
+	gitCmd := fmt.Sprintf(`git add -A && git commit -m "$(cat <<'COMMITMSG'
+%s
+COMMITMSG
+)"`, commitMsg)
 
 	// On Linux, ensure ssh-agent is available for commit signing
 	var cmd tea.Cmd
